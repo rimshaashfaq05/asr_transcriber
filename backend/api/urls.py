@@ -1,9 +1,21 @@
+# # api/urls.py
+# from django.urls import path
+# from .views import FileUploadView
+# from .views import download_transcription
+
+
+# urlpatterns = [
+#     path('upload/', FileUploadView.as_view(), name='file-upload'),
+#     path('download/<int:transcription_id>/', download_transcription, name='download_transcription'),
+
+# ] 
+
 from django.urls import path
-from .views import transcribe_audio,export_transcriptions  # Make sure the name matches the function in views.py
+from .views import FileUploadView, transcribe_audio, download_transcription, export_transcriptions
 
 urlpatterns = [
-    path('transcribe/', transcribe_audio, name='transcribe_audio'),
-    path('export/', export_transcriptions, name='export_transcriptions'),  # Add export URL
-
-    # Other URL patterns
+    path('upload/', FileUploadView.as_view(), name='file-upload'),
+    path('transcribe/', transcribe_audio, name='transcribe-audio'),
+    path('download/<int:transcription_id>/', download_transcription, name='download-transcription'),
+    path('export/', export_transcriptions, name='export-transcriptions'),
 ]

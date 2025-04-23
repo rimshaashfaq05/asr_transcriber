@@ -21,6 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -44,6 +45,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'api',
     'rest_framework',
+    'corsheaders',
+
 
     
 ]
@@ -56,7 +59,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+
+
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "backend.urls"
 
@@ -84,17 +91,16 @@ WSGI_APPLICATION = "backend.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mydb',
-        'USER': 'asr',
-        'PASSWORD': 'May20...',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-            'unix_socket': '/path/to/mysql.sock',
-        },
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'asrdata',
+        'USER': 'postgres',
+        'PASSWORD': 'May20...',  # jo bhi tumne postgres install time pe diya tha
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
+
 
 
 
