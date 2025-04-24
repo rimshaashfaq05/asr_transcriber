@@ -11,9 +11,11 @@
 # ] 
 
 from django.urls import path
+from .views import home
 from .views import FileUploadView, transcribe_audio, download_transcription, export_transcriptions
 
 urlpatterns = [
+    path('', home),
     path('upload/', FileUploadView.as_view(), name='file-upload'),
     path('transcribe/', transcribe_audio, name='transcribe-audio'),
     path('download/<int:transcription_id>/', download_transcription, name='download-transcription'),
