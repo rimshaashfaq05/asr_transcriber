@@ -74,17 +74,28 @@ import { useState } from 'react';
 import axios from 'axios';
 
 export default function UploadPage() {
-  const [file, setFile] = useState(null);
+  // const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [file, setFile] = useState<File | null>(null); // ✅ typed correctly
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-    setMessage('');
-    setDownloadUrl(null);
+
+  // const handleFileChange = (e) => {
+  //   setFile(e.target.files[0]);s
+  //   setMessage('');
+  //   setDownloadUrl(null);
+  // };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setMessage('');
+      setDownloadUrl(null);
+    }
   };
-
+  
+  
   const handleUpload = async () => {
     if (!file) {
       setMessage('📂 Please select an audio file to upload.');
