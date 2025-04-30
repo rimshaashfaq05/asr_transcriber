@@ -18,6 +18,17 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import generics
+from django.contrib.auth.models import User
+from .serializers import RegisterSerializer
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
 
 @api_view(['POST'])
 def signup(request):
@@ -191,71 +202,3 @@ def export_transcriptions(request):
     return response
 
 
-
-
-# from rest_framework.decorators import api_view
-# from django.core.files.base import ContentFile
-# from django.http import HttpResponse, FileResponse
-# from rest_framework.response import Response
-# import time
-# import os
-# import whisper
-# from .models import Transcription
-
-# # Load Whisper model once
-# model = whisper.load_model("large")
-
-# @api_view(['POST'])
-# def transcribe_audio(request):
-#     start_time = time.time()
-#     audio_file = request.FILES.get('audio_file')
-
-#     if not audio_file:
-#         return Response({'error': 'No audio file provided'}, status=400)
-
-#     # Save audio file to disk
-#     filename = audio_file.name
-#     file_path = f"media/uploads/{filename}"
-#     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-#     with open(file_path, 'wb+') as f:
-#         for chunk in audio_file.chunks():
-#             f.write(chunk)
-
-#     # Transcribe locally using Whisper
-#     print("🔍 Transcribing locally with Whisper...")
-#     result = model.transcribe(file_path)
-
-#     # Save transcription to DB
-#     transcript_text = result["text"]
-#     transcription = Transcription.objects.create(
-#         audio_file=ContentFile(audio_file.read(), name=filename),
-#         transcript=transcript_text
-#     )
-
-#     # Generate timestamped transcript file
-#     timestamped_txt = ""
-#     for segment in result.get("segments", []):
-#         timestamped_txt += f"[{segment['start']:.2f} - {segment['end']:.2f}] {segment['text']}\n"
-
-#     # Save the file to be both local and in DB
-#     output_filename = f"transcription_{transcription.id}.txt"
-#     output_path = os.path.join("media/transcripts", output_filename)
-#     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-#     # Save transcription file locally
-#     with open(output_path, "w") as f:
-#         f.write(timestamped_txt)
-
-#     # Save transcription file in DB
-#     with open(output_path, 'rb') as f:
-#         transcription.transcript_file.save(output_filename, ContentFile(f.read()), save=True)
-
-#     total_time = time.time() - start_time
-#     print(f"✅ Transcription done in {total_time:.2f}s")
-
-#     # Return transcript as file response
-#     response = HttpResponse(content_type='text/plain')
-#     response['Content-Disposition'] = f'attachment; filename="{output_filename}"'
-#     response.write(timestamped_txt)
-#     return response

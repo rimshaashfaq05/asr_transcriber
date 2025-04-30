@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'corsheaders',
-
+    'rest_framework_simplejwt',
 
     
 ]
@@ -62,7 +62,14 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 
 
+
 ]
+CORS_ALLOW_ALL_ORIGINS = True
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "backend.urls"
