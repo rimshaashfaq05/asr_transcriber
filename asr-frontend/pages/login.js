@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // import { useRouter } from 'next/router';
 // import { useState } from 'react';
 // import Navbar from './components/Navbar';
@@ -162,6 +163,32 @@ const Login = () => {
       }
     } catch (error) {
       setMessage('Network error. Please try again.');
+=======
+import { useRouter } from 'next/router';
+import { useState } from 'react';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+
+const Login = () => {
+  const router = useRouter();
+  const [message, setMessage] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const email = formData.get('email');
+    const password = formData.get('password');
+
+    // Dummy login check (replace with real auth logic)
+    if (email && password) {
+      setMessage('Login successful! Redirecting...');
+      setTimeout(() => {
+        router.push('/transcription');
+      }, 2000);
+    } else {
+      alert('Please enter both email and password');
+>>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
     }
   };
 
@@ -174,12 +201,21 @@ const Login = () => {
           {message && <p style={styles.successMessage}>{message}</p>}
           <form onSubmit={handleLogin} style={styles.form}>
             <div style={styles.inputGroup}>
+<<<<<<< HEAD
               <label>Username</label>
               <input
                 type="text"
                 name="username"  // Changed from 'email'
                 required
                 placeholder="Enter your username"
+=======
+              <label>Email</label>
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="Enter your email"
+>>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
                 style={styles.input}
               />
             </div>
