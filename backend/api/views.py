@@ -18,6 +18,89 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import generics
+from django.contrib.auth.models import User
+from .serializers import RegisterSerializer
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.permissions import IsAuthenticated
+from .serializers import TranscriptionSerializer
+from rest_framework.generics import ListAPIView
+
+
+# Load Whisper model once (large model can take time)
+model = whisper.load_model("large")
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
+
+@api_view(['POST'])
+def signup(request):
+    try:
+        print(f"Request data: {request.data}")  # Log the request data
+
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=email).exists():
+            return Response({"error": "User already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=email, email=email, password=password)
+        return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        print(f"Error occurred: {e}")  # Log the exception to help debug
+        return Response({"error": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# 🔹 JWT-style Login (Custom, optional if not using TokenObtainPairView)
+class LoginAPIView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        user = authenticate(username=username, password=password)
+
+        if user:
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                }
+            })
+        return Response({'detail': 'Invalid credentials'}, status=401)
+
+
+# @api_view(['POST'])
+# def login(request):
+#     email = request.data.get('email')
+#     password = request.data.get('password')
+
+#     if not email or not password:
+#         return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+#     # Authenticate user by email instead of username
+#     try:
+#         user = authenticate(username=email, password=password)
+#     except Exception as e:
+#         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+#     if user:
+#         refresh = RefreshToken.for_user(user)
+#         return Response({
+#             'access_token': str(refresh.access_token),
+#             'refresh_token': str(refresh),
+#         })
+#     else:
+#         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 def signup(request):
@@ -99,8 +182,66 @@ def home(request):
     return HttpResponse(html)
 
 
+
+class TranscribeView(APIView):
+    def post(self, request):
+        start_time = time.time()
+        audio_file = request.FILES.get('audio_file')
+
+        if not audio_file:
+            return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Save audio file to disk
+            filename = audio_file.name
+            file_path = f"media/uploads/{filename}"
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            with open(file_path, 'wb+') as f:
+                for chunk in audio_file.chunks():
+                    f.write(chunk)
+
+            # Transcribe locally using Whisper
+            print("🔍 Transcribing locally with Whisper...")
+            result = model.transcribe(file_path)
+
+            # Save transcription to DB
+            transcript_text = result["text"]
+            transcription = Transcription.objects.create(
+                audio_file=ContentFile(audio_file.read(), name=filename),
+                transcript=transcript_text
+            )
+
+            # Generate timestamped transcript file
+            timestamped_txt = ""
+            for segment in result.get("segments", []):
+                timestamped_txt += f"[{segment['start']:.2f} - {segment['end']:.2f}] {segment['text']}\n"
+
+            # Save the file to be downloadable
+            output_filename = f"transcription_{transcription.id}.txt"
+            output_path = os.path.join("media/transcripts", output_filename)
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+            with open(output_path, "w") as f:
+                f.write(timestamped_txt)
+
+            total_time = time.time() - start_time
+            print(f"✅ Transcription done in {total_time:.2f}s")
+
+            # Return the transcript as a downloadable file
+            response = HttpResponse(content_type='text/plain')
+            response['Content-Disposition'] = f'attachment; filename="{output_filename}"'
+            response.write(timestamped_txt)
+
+            return response
+
+        except Exception as e:
+            # Handle any exceptions that occur during transcription
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Load Whisper model once (large model can take time)
 model = whisper.load_model("large")
+
 
 class FileUploadView(APIView):
     def post(self, request, *args, **kwargs):
@@ -189,73 +330,3 @@ def export_transcriptions(request):
         writer.writerow([transcription.id, audio_file_url, transcription.transcript])
 
     return response
-
-
-
-
-# from rest_framework.decorators import api_view
-# from django.core.files.base import ContentFile
-# from django.http import HttpResponse, FileResponse
-# from rest_framework.response import Response
-# import time
-# import os
-# import whisper
-# from .models import Transcription
-
-# # Load Whisper model once
-# model = whisper.load_model("large")
-
-# @api_view(['POST'])
-# def transcribe_audio(request):
-#     start_time = time.time()
-#     audio_file = request.FILES.get('audio_file')
-
-#     if not audio_file:
-#         return Response({'error': 'No audio file provided'}, status=400)
-
-#     # Save audio file to disk
-#     filename = audio_file.name
-#     file_path = f"media/uploads/{filename}"
-#     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-#     with open(file_path, 'wb+') as f:
-#         for chunk in audio_file.chunks():
-#             f.write(chunk)
-
-#     # Transcribe locally using Whisper
-#     print("🔍 Transcribing locally with Whisper...")
-#     result = model.transcribe(file_path)
-
-#     # Save transcription to DB
-#     transcript_text = result["text"]
-#     transcription = Transcription.objects.create(
-#         audio_file=ContentFile(audio_file.read(), name=filename),
-#         transcript=transcript_text
-#     )
-
-#     # Generate timestamped transcript file
-#     timestamped_txt = ""
-#     for segment in result.get("segments", []):
-#         timestamped_txt += f"[{segment['start']:.2f} - {segment['end']:.2f}] {segment['text']}\n"
-
-#     # Save the file to be both local and in DB
-#     output_filename = f"transcription_{transcription.id}.txt"
-#     output_path = os.path.join("media/transcripts", output_filename)
-#     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-#     # Save transcription file locally
-#     with open(output_path, "w") as f:
-#         f.write(timestamped_txt)
-
-#     # Save transcription file in DB
-#     with open(output_path, 'rb') as f:
-#         transcription.transcript_file.save(output_filename, ContentFile(f.read()), save=True)
-
-#     total_time = time.time() - start_time
-#     print(f"✅ Transcription done in {total_time:.2f}s")
-
-#     # Return transcript as file response
-#     response = HttpResponse(content_type='text/plain')
-#     response['Content-Disposition'] = f'attachment; filename="{output_filename}"'
-#     response.write(timestamped_txt)
-#     return response
