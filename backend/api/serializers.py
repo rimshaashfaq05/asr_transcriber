@@ -17,7 +17,7 @@ from django.contrib.auth.models import User
 from .models import Transcription, UploadedFile
 
 class TranscriptionSerializer(serializers.ModelSerializer):
-<<<<<<< HEAD
+
     audio_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -30,12 +30,12 @@ class TranscriptionSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.audio_file.url)
         return obj.audio_file.url
-=======
+
     class Meta:
         model = Transcription
         fields = '__all__'  # includes audio_file, transcript, created_at
 
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
+
 class UploadedFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UploadedFile
@@ -49,7 +49,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
-<<<<<<< HEAD
         return user
 class UserSignupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,6 +62,6 @@ class UserSignupSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
-=======
+
         return user
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
+

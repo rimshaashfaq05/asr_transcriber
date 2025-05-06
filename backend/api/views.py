@@ -23,7 +23,6 @@ from django.contrib.auth.models import User
 from .serializers import RegisterSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
-<<<<<<< HEAD
 from rest_framework.permissions import IsAuthenticated
 from .serializers import TranscriptionSerializer
 from rest_framework.generics import ListAPIView
@@ -32,15 +31,11 @@ from rest_framework.generics import ListAPIView
 # Load Whisper model once (large model can take time)
 model = whisper.load_model("large")
 
-=======
-
-
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
-<<<<<<< HEAD
+
 @api_view(['POST'])
 def signup(request):
     try:
@@ -105,7 +100,7 @@ class LoginAPIView(APIView):
 #         })
 #     else:
 #         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
-=======
+
 
 @api_view(['POST'])
 def signup(request):
@@ -139,7 +134,6 @@ def login(request):
     else:
         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
 
 def home(request):
     html = """
@@ -188,7 +182,7 @@ def home(request):
     return HttpResponse(html)
 
 
-<<<<<<< HEAD
+
 class TranscribeView(APIView):
     def post(self, request):
         start_time = time.time()
@@ -244,10 +238,10 @@ class TranscribeView(APIView):
         except Exception as e:
             # Handle any exceptions that occur during transcription
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-=======
+
 # Load Whisper model once (large model can take time)
 model = whisper.load_model("large")
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
+
 
 class FileUploadView(APIView):
     def post(self, request, *args, **kwargs):
@@ -336,8 +330,3 @@ def export_transcriptions(request):
         writer.writerow([transcription.id, audio_file_url, transcription.transcript])
 
     return response
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e

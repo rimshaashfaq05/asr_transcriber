@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 // import { useRouter } from 'next/router';
 // import { useState } from 'react';
 // import Navbar from './components/Navbar';
@@ -123,22 +123,25 @@
 
 // export default Login;
 
+
+
+
 import { useRouter } from 'next/router';
 import { useState, useContext } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { AuthContext } from './contexts/AuthContext';  // Import context
+import { AuthContext } from './contexts/AuthContext';
 
 const Login = () => {
   const router = useRouter();
-  const { login } = useContext(AuthContext);  // Use the login function from context
+  const { login } = useContext(AuthContext);
   const [message, setMessage] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     const formData = new FormData(e.target);
-    const username = formData.get('username');  // Use 'username' instead of 'email'
+    const username = formData.get('username');
     const password = formData.get('password');
 
     try {
@@ -147,15 +150,15 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ username, password }),  // Updated key
+        body: JSON.stringify({ username, password }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        login(data.access);  // Store access token in AuthContext
+        login(data.access); // Store token in context
         setMessage('Login successful! Redirecting...');
         setTimeout(() => {
-          router.push('/transcription');  // Redirect to transcription page
+          router.push('/transcription');
         }, 4000);
       } else {
         const errorData = await res.json();
@@ -163,32 +166,6 @@ const Login = () => {
       }
     } catch (error) {
       setMessage('Network error. Please try again.');
-=======
-import { useRouter } from 'next/router';
-import { useState } from 'react';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-
-const Login = () => {
-  const router = useRouter();
-  const [message, setMessage] = useState('');
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(e.target);
-    const email = formData.get('email');
-    const password = formData.get('password');
-
-    // Dummy login check (replace with real auth logic)
-    if (email && password) {
-      setMessage('Login successful! Redirecting...');
-      setTimeout(() => {
-        router.push('/transcription');
-      }, 2000);
-    } else {
-      alert('Please enter both email and password');
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
     }
   };
 
@@ -201,21 +178,12 @@ const Login = () => {
           {message && <p style={styles.successMessage}>{message}</p>}
           <form onSubmit={handleLogin} style={styles.form}>
             <div style={styles.inputGroup}>
-<<<<<<< HEAD
               <label>Username</label>
               <input
                 type="text"
-                name="username"  // Changed from 'email'
+                name="username"
                 required
                 placeholder="Enter your username"
-=======
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                required
-                placeholder="Enter your email"
->>>>>>> 90e99aa7fb7bd33fa04a3c41ec3e1fceaa2bdf3e
                 style={styles.input}
               />
             </div>
