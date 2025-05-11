@@ -1,0 +1,7 @@
+{
+"name": "your-app",
+"version": "1.0.0",
+"scripts": {
+    "build-frontend": "cd asr-frontend && npm install && npm run build"
+}
+}
