@@ -1,63 +1,41 @@
-
-
 from rest_framework.decorators import api_view
+from django.contrib.auth.models import User  # Ensure you're using the default User model
 from rest_framework.response import Response
 from django.http import HttpResponse, FileResponse, Http404
 from .models import Transcription
 import time
 import csv
+from rest_framework.parsers import MultiPartParser, FormParser
 from io import BytesIO
 import os
 import whisper
 from django.core.files.base import ContentFile
 from rest_framework.views import APIView
-from django.http import HttpResponse
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import generics
-from django.contrib.auth.models import User
-from .serializers import RegisterSerializer
+from rest_framework import status
 from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
-from .serializers import TranscriptionSerializer
-from rest_framework.generics import ListAPIView
+from .serializers import UserSerializer, RegisterSerializer, TranscriptionSerializer, UploadedFileSerializer
+from rest_framework import serializers
 
 
-# Load Whisper model once (large model can take time)
+
+# Load Whisper model once for reuse across requests
 model = whisper.load_model("large")
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
 
-class RegisterView(generics.CreateAPIView):
+# User Registration View
+class RegisterView(CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Allow anyone to register
     serializer_class = RegisterSerializer
 
-@api_view(['POST'])
-def signup(request):
-    try:
-        print(f"Request data: {request.data}")  # Log the request data
-
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-        if not email or not password:
-            return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if User.objects.filter(username=email).exists():
-            return Response({"error": "User already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = User.objects.create_user(username=email, email=email, password=password)
-        return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
-
-    except Exception as e:
-        print(f"Error occurred: {e}")  # Log the exception to help debug
-        return Response({"error": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-# 🔹 JWT-style Login (Custom, optional if not using TokenObtainPairView)
+# Login API View - Custom JWT implementation
 class LoginAPIView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -76,65 +54,17 @@ class LoginAPIView(APIView):
                 }
             })
         return Response({'detail': 'Invalid credentials'}, status=401)
+class FileUploadView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
 
+    def post(self, request, *args, **kwargs):
+        serializer = UploadedFileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
 
-# @api_view(['POST'])
-# def login(request):
-#     email = request.data.get('email')
-#     password = request.data.get('password')
-
-#     if not email or not password:
-#         return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-#     # Authenticate user by email instead of username
-#     try:
-#         user = authenticate(username=email, password=password)
-#     except Exception as e:
-#         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-#     if user:
-#         refresh = RefreshToken.for_user(user)
-#         return Response({
-#             'access_token': str(refresh.access_token),
-#             'refresh_token': str(refresh),
-#         })
-#     else:
-#         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['POST'])
-def signup(request):
-    email = request.data.get('email')
-    password = request.data.get('password')
-
-    if not email or not password:
-        return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    if User.objects.filter(username=email).exists():
-        return Response({"error": "User already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-    user = User.objects.create_user(username=email, email=email, password=password)
-    return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
-
-@api_view(['POST'])
-def login(request):
-    email = request.data.get('email')
-    password = request.data.get('password')
-
-    if not email or not password:
-        return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    user = authenticate(username=email, password=password)
-    if user:
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh),
-        })
-    else:
-        return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
-
-
+# Home view
 def home(request):
     html = """
     <!DOCTYPE html>
@@ -181,8 +111,7 @@ def home(request):
     """
     return HttpResponse(html)
 
-
-
+# Transcription handling (audio file upload and transcription)
 class TranscribeView(APIView):
     def post(self, request):
         start_time = time.time()
@@ -239,14 +168,7 @@ class TranscribeView(APIView):
             # Handle any exceptions that occur during transcription
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# Load Whisper model once (large model can take time)
-model = whisper.load_model("large")
-
-
-class FileUploadView(APIView):
-    def post(self, request, *args, **kwargs):
-        return Response({'message': 'File uploaded successfully'})
-
+# Transcribe audio directly from API
 @api_view(['POST'])
 def transcribe_audio(request):
     start_time = time.time()
@@ -297,6 +219,7 @@ def transcribe_audio(request):
     response.write(timestamped_txt)
     return response
 
+# Download transcription
 def download_transcription(request, transcription_id):
     try:
         transcription = Transcription.objects.get(id=transcription_id)
@@ -317,6 +240,7 @@ def download_transcription(request, transcription_id):
         content_type='text/plain'
     )
 
+# Export transcriptions to CSV
 def export_transcriptions(request):
     transcriptions = Transcription.objects.all()
     response = HttpResponse(content_type='text/csv')

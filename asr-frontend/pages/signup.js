@@ -9,35 +9,51 @@ const SignUp = () => {
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const formData = new FormData(e.target);
-    const email = formData.get('email');
-    const password = formData.get('password');
-    const name = formData.get('name');
-    const confirmPassword = formData.get('confirmPassword');
+  const formData = new FormData(e.target);
+  const email = formData.get('email');
+  const password = formData.get('password');
+  const name = formData.get('name');
+  const confirmPassword = formData.get('confirmPassword');
 
-    if (password !== confirmPassword) {
-      alert('Passwords do not match!');
-      return;
-    }
+  if (password !== confirmPassword) {
+    alert('Passwords do not match!');
+    return;
+  }
 
-    try {
-      if (email && password) {
-        console.log({ name, email, password }); // Replace with actual signup logic
-        setMessage('Sign-up successful! Redirecting to login...');
-        setError('');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      } else {
-        throw new Error('Invalid input!');
-      }
-    } catch (error) {
-      setError(error.message);
+  try {
+    const response = await fetch('http://localhost:8000/api/signup/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setMessage('Sign-up successful! Redirecting to login...');
+      setError('');
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } else {
+      setError(data.detail || 'Signup failed!');
       setMessage('');
+      console.error('Signup failed:', data); // Log backend error details
     }
-  };
+  } catch (error) {
+    setError('An error occurred. Please try again.');
+    setMessage('');
+    console.error('Error during sign-up:', error);
+  }
+};
 
   return (
     <>
