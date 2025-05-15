@@ -112,6 +112,40 @@ def home(request):
     return HttpResponse(html)
 
 # Transcription handling (audio file upload and transcription)
+
+@api_view(['POST'])
+def signup(request):
+    if request.method == 'POST':
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        # Check if the user already exists
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a new user
+        user = User.objects.create_user(username=username, email=email, password=password)
+        user.save()
+
+        return Response({'username': user.username, 'email': user.email}, status=status.HTTP_201_CREATED)
+@api_view(['POST'])
+def login(request):
+    if request.method == 'POST':
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        # Authenticate the user
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # User is authenticated successfully
+            return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
 class TranscribeView(APIView):
     def post(self, request):
         start_time = time.time()

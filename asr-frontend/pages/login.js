@@ -130,7 +130,7 @@ import { useRouter } from 'next/router';
 import { useState, useContext } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { AuthContext } from './contexts/AuthContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 const Login = () => {
   const router = useRouter();

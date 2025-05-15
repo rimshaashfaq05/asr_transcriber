@@ -225,7 +225,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { AuthContext } from './contexts/AuthContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 export default function UploadPage() {
   const { isAuthenticated } = useContext(AuthContext);
