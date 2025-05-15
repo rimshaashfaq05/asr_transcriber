@@ -23,19 +23,17 @@ const SignUp = () => {
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/signup/', {
-      method: 'POST',
+    const response = await fetch("http://127.0.0.1:8000/api/signup/", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        name,
-        email,
-        password,
+        username: name,
+        email: email,
+        password: password
       }),
     });
-
-    const data = await response.json();
 
     if (response.ok) {
       setMessage('Sign-up successful! Redirecting to login...');
@@ -44,14 +42,13 @@ const SignUp = () => {
         router.push('/login');
       }, 2000);
     } else {
-      setError(data.detail || 'Signup failed!');
+      const errorData = await response.json();
+      setError(errorData.detail || 'Sign-up failed. Try again.');
       setMessage('');
-      console.error('Signup failed:', data); // Log backend error details
     }
   } catch (error) {
-    setError('An error occurred. Please try again.');
+    setError('Network error. Please try again.');
     setMessage('');
-    console.error('Error during sign-up:', error);
   }
 };
 

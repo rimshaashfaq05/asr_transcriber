@@ -1,3 +1,46 @@
+# Python virtual environment folders
+venv/
+backend/venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables file
+.env
 env/
+
+# Audio/video files (add extensions as needed)
 *.mkv
+*.mp3
+*.wav
+*.flac
+
+# Audio folder to ignore raw/processed audio files
 audio/
+
+# IDE/editor specific files (add if you use any)
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# MacOS files
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/

@@ -225,7 +225,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { AuthContext } from './contexts/AuthContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 export default function UploadPage() {
   const { isAuthenticated } = useContext(AuthContext);
@@ -278,6 +278,7 @@ export default function UploadPage() {
     try {
       setIsProcessing(true);
       setMessage('🚀 Uploading and processing, please wait...');
+
 
       const res = await axios.post('http://localhost:8000/api/transcribe/', formData, {
         headers: {

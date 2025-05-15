@@ -43,7 +43,11 @@
 
 from django.db import models
 from django.core.validators import FileExtensionValidator
-
+from django.contrib.auth.models import User
+class User(models.Model):
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=255)
 
 class Transcription(models.Model):
     audio_file = models.FileField(
@@ -58,13 +62,18 @@ class Transcription(models.Model):
         return f"Transcription {self.id}"
 
 
-# This model is already fine
-class UploadedFile(models.Model):
-    file = models.FileField(
-        upload_to='uploads/',
-        validators=[FileExtensionValidator(allowed_extensions=['mp3', 'wav', 'ogg', 'flac', 'aac'])]
-    )
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+# # This model is already fine
+# class UploadedFile(models.Model):
+#     file = models.FileField(
+#         upload_to='uploads/',
+#         validators=[FileExtensionValidator(allowed_extensions=['mp3', 'wav', 'ogg', 'flac', 'aac'])]
+#     )
+#     uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.file.name
+#     def __str__(self):
+#         return self.file.name
+class UploadedFile(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Link to logged-in user
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
