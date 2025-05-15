@@ -24,6 +24,8 @@ class UploadedFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UploadedFile
         fields = ['id', 'file', 'uploaded_at']
+    def create(self, validated_data):
+        return UploadedFile.objects.create(user=self.context['request'].user, **validated_data)
 
 # 📝 Serializer for transcriptions
 class TranscriptionSerializer(serializers.ModelSerializer):
@@ -39,3 +41,13 @@ class TranscriptionSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.audio_file.url)
         return obj.audio_file.url
+
+class UploadedFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UploadedFile
+        fields = ['file', 'uploaded_at']
+
+class TranscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transcription
+        fields = ['file', 'text', 'created_at']

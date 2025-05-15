@@ -128,6 +128,8 @@ export default function Navbar() {
         ) : (
           <>
             <Link href="/transcription" style={styles.link}>Transcribe</Link>
+            <Link href="/my-uploads" style={styles.link}>My Upload</Link>
+
             <button
               onClick={handleLogout}
               style={{

@@ -279,6 +279,7 @@ export default function UploadPage() {
       setIsProcessing(true);
       setMessage('🚀 Uploading and processing, please wait...');
 
+
       const res = await axios.post('http://localhost:8000/api/transcribe/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

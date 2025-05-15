@@ -1,29 +1,30 @@
-from rest_framework.decorators import api_view
-from django.contrib.auth.models import User  # Ensure you're using the default User model
-from rest_framework.response import Response
-from django.http import HttpResponse, FileResponse, Http404
-from .models import Transcription
-import time
-import csv
-from rest_framework.parsers import MultiPartParser, FormParser
-from io import BytesIO
-import os
-import whisper
-from django.core.files.base import ContentFile
-from rest_framework.views import APIView
+from django.http import HttpResponse, FileResponse, Http404, JsonResponse
+from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import status
-from rest_framework.permissions import AllowAny
+from django.core.files.base import ContentFile
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status, serializers
+
+from .models import Transcription, UploadedFile
 from .serializers import UserSerializer, RegisterSerializer, TranscriptionSerializer, UploadedFileSerializer
-from rest_framework import serializers
-
-
+import whisper
+import time
+import os
+import csv
+from io import BytesIO
 
 # Load Whisper model once for reuse across requests
 model = whisper.load_model("large")
+
+def test_view(request):
+    return JsonResponse({"message": "Response from server 8001"})
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -32,17 +33,15 @@ class UserSerializer(serializers.ModelSerializer):
 # User Registration View
 class RegisterView(CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = [AllowAny]  # Allow anyone to register
+    permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
 
-# Login API View - Custom JWT implementation
+# Login API View - JWT
 class LoginAPIView(APIView):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-
         user = authenticate(username=username, password=password)
-
         if user:
             refresh = RefreshToken.for_user(user)
             return Response({
@@ -54,15 +53,39 @@ class LoginAPIView(APIView):
                 }
             })
         return Response({'detail': 'Invalid credentials'}, status=401)
-class FileUploadView(APIView):
-    parser_classes = (MultiPartParser, FormParser)
 
+class FileUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
-        serializer = UploadedFileSerializer(data=request.data)
+        serializer = UploadedFileSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
+
+class UserInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        return Response({
+            "username": user.username,
+            "email": user.email,
+        })
+
+class UserFilesView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        qs = UploadedFile.objects.filter(user=request.user).order_by('-uploaded_at')
+        serializer = UploadedFileSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class UserTranscriptionsView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        qs = Transcription.objects.filter(user=request.user).order_by('-created_at')
+        serializer = TranscriptionSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
 
 # Home view
 def home(request):
@@ -111,8 +134,6 @@ def home(request):
     """
     return HttpResponse(html)
 
-# Transcription handling (audio file upload and transcription)
-
 @api_view(['POST'])
 def signup(request):
     if request.method == 'POST':
@@ -155,7 +176,6 @@ class TranscribeView(APIView):
             return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Save audio file to disk
             filename = audio_file.name
             file_path = f"media/uploads/{filename}"
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -164,23 +184,19 @@ class TranscribeView(APIView):
                 for chunk in audio_file.chunks():
                     f.write(chunk)
 
-            # Transcribe locally using Whisper
             print("🔍 Transcribing locally with Whisper...")
             result = model.transcribe(file_path)
 
-            # Save transcription to DB
             transcript_text = result["text"]
             transcription = Transcription.objects.create(
                 audio_file=ContentFile(audio_file.read(), name=filename),
                 transcript=transcript_text
             )
 
-            # Generate timestamped transcript file
             timestamped_txt = ""
             for segment in result.get("segments", []):
                 timestamped_txt += f"[{segment['start']:.2f} - {segment['end']:.2f}] {segment['text']}\n"
 
-            # Save the file to be downloadable
             output_filename = f"transcription_{transcription.id}.txt"
             output_path = os.path.join("media/transcripts", output_filename)
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -191,7 +207,6 @@ class TranscribeView(APIView):
             total_time = time.time() - start_time
             print(f"✅ Transcription done in {total_time:.2f}s")
 
-            # Return the transcript as a downloadable file
             response = HttpResponse(content_type='text/plain')
             response['Content-Disposition'] = f'attachment; filename="{output_filename}"'
             response.write(timestamped_txt)
@@ -199,10 +214,8 @@ class TranscribeView(APIView):
             return response
 
         except Exception as e:
-            # Handle any exceptions that occur during transcription
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# Transcribe audio directly from API
 @api_view(['POST'])
 def transcribe_audio(request):
     start_time = time.time()
@@ -211,7 +224,6 @@ def transcribe_audio(request):
     if not audio_file:
         return Response({'error': 'No audio file provided'}, status=400)
 
-    # Save audio file to disk
     filename = audio_file.name
     file_path = f"media/uploads/{filename}"
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -220,23 +232,19 @@ def transcribe_audio(request):
         for chunk in audio_file.chunks():
             f.write(chunk)
 
-    # Transcribe locally using Whisper
     print("🔍 Transcribing locally with Whisper...")
     result = model.transcribe(file_path)
 
-    # Save transcription to DB
     transcript_text = result["text"]
     transcription = Transcription.objects.create(
         audio_file=ContentFile(audio_file.read(), name=filename),
         transcript=transcript_text
     )
 
-    # Generate timestamped transcript file
     timestamped_txt = ""
     for segment in result.get("segments", []):
         timestamped_txt += f"[{segment['start']:.2f} - {segment['end']:.2f}] {segment['text']}\n"
 
-    # Save the file to be downloadable
     output_filename = f"transcription_{transcription.id}.txt"
     output_path = os.path.join("media/transcripts", output_filename)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -247,13 +255,11 @@ def transcribe_audio(request):
     total_time = time.time() - start_time
     print(f"✅ Transcription done in {total_time:.2f}s")
 
-    # Return transcript as file response
     response = HttpResponse(content_type='text/plain')
     response['Content-Disposition'] = f'attachment; filename="{output_filename}"'
     response.write(timestamped_txt)
     return response
 
-# Download transcription
 def download_transcription(request, transcription_id):
     try:
         transcription = Transcription.objects.get(id=transcription_id)
@@ -274,7 +280,6 @@ def download_transcription(request, transcription_id):
         content_type='text/plain'
     )
 
-# Export transcriptions to CSV
 def export_transcriptions(request):
     transcriptions = Transcription.objects.all()
     response = HttpResponse(content_type='text/csv')
@@ -288,3 +293,13 @@ def export_transcriptions(request):
         writer.writerow([transcription.id, audio_file_url, transcription.transcript])
 
     return response
+
+class DownloadTranscriptionView(APIView):
+    def get(self, request, *args, **kwargs):
+        # logic to locate transcription file
+        return FileResponse(open('path/to/transcription.txt', 'rb'), as_attachment=True)
+
+class ExportTranscriptionsView(APIView):
+    def get(self, request):
+        # Example logic
+        return Response({"message": "Exported transcriptions successfully."})
