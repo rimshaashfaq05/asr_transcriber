@@ -46,6 +46,5 @@ cd ../frontend
 npm install
 npm run dev
 
-![Screenshot from 2025-05-16 23-44-17](https://github.com/user-attachments/assets/a5991fc7-923c-4f64-95f3-398f58a50be6)
 
 
