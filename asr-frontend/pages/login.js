@@ -145,9 +145,10 @@ const Login = () => {
     const password = formData.get('password');
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/token/", {
+      // const res = await fetch("http://13.51.162.107:8000/api/token/", {
+      const res = await fetch("http://localhost:8000/api/token/", {
         method: "POST",
-        headers: {
+        headers: {  
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ username, password }),
