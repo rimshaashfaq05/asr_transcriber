@@ -280,7 +280,7 @@ export default function UploadPage() {
       setMessage('🚀 Uploading and processing, please wait...');
 
 
-      const res = await axios.post('http://13.51.162.107:8000/api/transcribe/', formData, {
+      const res = await axios.post('https://3ca1-13-51-162-107.ngrok-free.app/api/transcribe/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

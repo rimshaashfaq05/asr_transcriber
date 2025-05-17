@@ -145,7 +145,8 @@ const Login = () => {
     const password = formData.get('password');
 
     try {
-      const res = await fetch("http://13.51.162.107:8000/api/token/", {
+      // const res = await fetch("http://13.51.162.107:8000/api/token/", {
+      const res = await fetch("https://3ca1-13-51-162-107.ngrok-free.app/api/token/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
