@@ -146,9 +146,9 @@ const Login = () => {
 
     try {
       // const res = await fetch("http://13.51.162.107:8000/api/token/", {
-      const res = await fetch("https://3ca1-13-51-162-107.ngrok-free.app/api/token/", {
+      const res = await fetch("http://localhost:8000/api/token/", {
         method: "POST",
-        headers: {
+        headers: {  
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ username, password }),
